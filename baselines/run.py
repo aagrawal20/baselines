@@ -14,7 +14,7 @@ from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 from baselines.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
 from baselines.common.tf_util import get_session
-from baselines import logger
+from baselines import bench, contract, logger
 from importlib import import_module
 
 from baselines.common.vec_env.vec_normalize import VecNormalize
@@ -67,6 +67,14 @@ def train(args, extra_args):
     alg_kwargs.update(extra_args)
 
     env = build_env(args)
+
+    def capped_cubic_video_schedule(episode_id):
+        if episode_id < 1000:
+            return abs(int(round(episode_id ** (1. / 3))) ** 3 - episode_id) < 20
+        else:
+            return episode_id % 1000 < 20
+
+    env = gym.wrappers.Monitor(env, osp.join(logger.Logger.CURRENT.dir, "videos"), video_callable=capped_cubic_video_schedule)
     if args.save_video_interval != 0:
         env = VecVideoRecorder(env, osp.join(logger.Logger.CURRENT.dir, "videos"), record_video_trigger=lambda x: x % args.save_video_interval == 0, video_length=args.save_video_length)
 
