@@ -68,13 +68,6 @@ def train(args, extra_args):
 
     env = build_env(args)
 
-    def capped_cubic_video_schedule(episode_id):
-        if episode_id < 1000:
-            return abs(int(round(episode_id ** (1. / 3))) ** 3 - episode_id) < 20
-        else:
-            return episode_id % 1000 < 20
-
-    env = gym.wrappers.Monitor(env, osp.join(logger.Logger.CURRENT.dir, "videos"), video_callable=capped_cubic_video_schedule)
     if args.save_video_interval != 0:
         env = VecVideoRecorder(env, osp.join(logger.Logger.CURRENT.dir, "videos"), record_video_trigger=lambda x: x % args.save_video_interval == 0, video_length=args.save_video_length)
 
@@ -129,10 +122,10 @@ def build_env(args):
     if args.contracts is not None:
         assert len(args.contracts) == len(args.rewards)
         contracts = [contract.CONTRACT_DICT[s](r) for (s, r) in zip(args.contracts, args.rewards)]
-    env = bench.Monitor(env, logger.get_dir())
     if args.contracts is not None:
-        env = contract.ContractEnv(env, contracts, augmentation_type=args.augmentation, log_dir=logger.get_dir())
+        env = contract.ConstraintEnv(env, contracts, augmentation_type=args.augmentation, log_dir=logger.get_dir())
         env = contract.StepMonitor(env, logger.get_dir())
+    env = bench.Monitor(env, logger.get_dir())
 
     return env
 

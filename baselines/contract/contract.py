@@ -56,7 +56,7 @@ DITHERINGANY_9 = "{9}|".join(list(map(str, range(10)))+['A','B','C','D','E','F']
 ENDURO_DITHERING = '(2|5|7){7}|(3|6|8){7}'
 
 CONTRACT_DICT = {'2d_dithering': lambda r: Contract('2d_dithering', DITHERING2D_REGEX_4, r),
-                 '2d_dithering_counting': lambda r: CountingPotentialContract('2d_dithering', DITHERING2D_REGEX_4, r, 0.99),
+                 '2d_dithering_counting': lambda r: CountingPotentialContract('2d_dithering_counting', DITHERING2D_REGEX_4, r, 0.99),
                  '1d_dithering': lambda r: Contract('1d_dithering', DITHERING1D_REGEX_k(2), r),
                  '1d_dithering_counting': lambda r: CountingPotentialContract('1d_dithering_counting', DITHERING1D_REGEX_k(2), r, 0.99),
                  '1d_actuation': lambda r: Contract('1d_actuation', ACTUATION1D_REGEX_k(4), r),
