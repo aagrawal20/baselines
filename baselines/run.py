@@ -119,7 +119,6 @@ def build_env(args):
        if env_type == 'mujoco':
            env = VecNormalize(env)
 
-    env = bench.Monitor(env, logger.get_dir())
     if args.contracts is not None:
         assert len(args.contracts) == len(args.rewards)
         contracts = [contract.CONTRACT_DICT[s](r) for (s, r) in zip(args.contracts, args.rewards)]
