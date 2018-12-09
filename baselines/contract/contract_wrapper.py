@@ -56,5 +56,4 @@ class ConstraintEnv(gym.Wrapper):
         return ob, rew, done, info
 
     def __del__(self):
-        print("DELETE!!!!!!!")
         self.reset()
