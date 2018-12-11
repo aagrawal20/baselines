@@ -2,9 +2,9 @@ import os
 
 import numpy as np
 
-import baselines.contract
+import baselines.constraint
 import gym
-from baselines.contract.bench.step_monitor import LogBuffer
+from baselines.constraint.bench.step_monitor import LogBuffer
 
 
 class ConstraintEnv(gym.Wrapper):
@@ -18,9 +18,9 @@ class ConstraintEnv(gym.Wrapper):
         self.augmentation_type = augmentation_type
         if log_dir is not None:
             self.log_dir = log_dir
-            self.viol_log_dict = dict([(c, LogBuffer(1000, (), dtype=np.bool))
+            self.viol_log_dict = dict([(c, LogBuffer(1024, (), dtype=np.bool))
                              for c in constraints])
-            self.rew_mod_log_dict = dict([(c, LogBuffer(1000, (), dtype=np.float32))
+            self.rew_mod_log_dict = dict([(c, LogBuffer(1024, (), dtype=np.float32))
                              for c in constraints])
         else:
             self.logs = None
@@ -37,7 +37,7 @@ class ConstraintEnv(gym.Wrapper):
         ]
 
         ob = self.env.reset(**kwargs)
-        if self.augmentation_type == 'contract_state':
+        if self.augmentation_type == 'constraint_state':
             ob = np.array([ob, [c.state_id() for c in self.constraints]])
         return ob
 
@@ -50,7 +50,7 @@ class ConstraintEnv(gym.Wrapper):
                 self.viol_log_dict[c].log(is_vio)
                 self.rew_mod_log_dict[c].log(rew_mod)
 
-        if self.augmentation_type == 'contract_state':
+        if self.augmentation_type == 'constraint_state':
             ob = np.array([ob, [c.state_id() for c in self.constraints]])
 
         return ob, rew, done, info

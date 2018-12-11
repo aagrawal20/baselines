@@ -1,9 +1,9 @@
-from baselines.contract.dfa import DFA
+from baselines.constraint.dfa import DFA
 from collections import Counter
 
-class Contract(DFA):
+class Constraint(DFA):
     def __init__(self, name, reg_ex, violation_reward):
-        super(Contract, self).__init__(reg_ex)
+        super(Constraint, self).__init__(reg_ex)
         self.name = name
         self.violation_reward = violation_reward
 
@@ -15,9 +15,9 @@ class Contract(DFA):
     def reset(self):
         return super().reset()
 
-class CountingPotentialContract(Contract):
+class CountingPotentialConstraint(Constraint):
     def __init__(self, name, reg_ex, violation_reward, gamma):
-        super(CountingPotentialContract, self).__init__(name, reg_ex, violation_reward)
+        super(CountingPotentialConstraint, self).__init__(name, reg_ex, violation_reward)
         self.episode_visit_count = Counter()
         self.visit_count = Counter(self.states())
         self.violation_count = Counter(self.accepting_states())
@@ -55,10 +55,10 @@ DITHERING2D_REGEX_4 = '((2|A)(2|A)(5|D)(5|D))|((2|A)(5|D)(2|A)(5|D))|((2|A)(5|D)
 DITHERINGANY_9 = "{9}|".join(list(map(str, range(10)))+['A','B','C','D','E','F']) + "{9}"
 ENDURO_DITHERING = '(2|5|7){7}|(3|6|8){7}'
 
-CONTRACT_DICT = {'2d_dithering': lambda r: Contract('2d_dithering', DITHERING2D_REGEX_4, r),
-                 '2d_dithering_counting': lambda r: CountingPotentialContract('2d_dithering_counting', DITHERING2D_REGEX_4, r, 0.99),
-                 '1d_dithering': lambda r: Contract('1d_dithering', DITHERING1D_REGEX_k(2), r),
-                 '1d_dithering_counting': lambda r: CountingPotentialContract('1d_dithering_counting', DITHERING1D_REGEX_k(2), r, 0.99),
-                 '1d_actuation': lambda r: Contract('1d_actuation', ACTUATION1D_REGEX_k(4), r),
-                 'any_dithering_9': lambda r: Contract('any_dithering_9', DITHERINGANY_9, r),
-                 'enduro_dithering': lambda r: Contract('enduro_dithering', ENDURO_DITHERING, r)}
+CONSTRAINT_DICT = {'2d_dithering': lambda r: Constraint('2d_dithering', DITHERING2D_REGEX_4, r),
+                 '2d_dithering_counting': lambda r: CountingPotentialConstraint('2d_dithering_counting', DITHERING2D_REGEX_4, r, 0.99),
+                 '1d_dithering': lambda r: Constraint('1d_dithering', DITHERING1D_REGEX_k(2), r),
+                 '1d_dithering_counting': lambda r: CountingPotentialConstraint('1d_dithering_counting', DITHERING1D_REGEX_k(2), r, 0.99),
+                 '1d_actuation': lambda r: Constraint('1d_actuation', ACTUATION1D_REGEX_k(4), r),
+                 'any_dithering_9': lambda r: Constraint('any_dithering_9', DITHERINGANY_9, r),
+                 'enduro_dithering': lambda r: Constraint('enduro_dithering', ENDURO_DITHERING, r)}

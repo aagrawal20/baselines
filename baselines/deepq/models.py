@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
 
-from baselines.contract.common.models import augment_network_with_contract_state
+from baselines.constraint.common.models import augment_network_with_constraint_state
 
 def _mlp(hiddens, input_, num_actions, scope, reuse=False, layer_norm=False):
     with tf.variable_scope(scope, reuse=reuse):
@@ -105,7 +105,7 @@ def build_q_func(network, obs_augmentation, hiddens=[256], dueling=True, layer_n
 
     def q_func_builder(input_placeholder, num_actions, scope, reuse=False):
         if obs_augmentation is not None:
-            contract_placeholders = input_placeholder[1:]
+            constraint_placeholders = input_placeholder[1:]
             input_placeholder = input_placeholder[0]
         with tf.variable_scope(scope, reuse=reuse):
             latent = network(input_placeholder)
@@ -123,7 +123,7 @@ def build_q_func(network, obs_augmentation, hiddens=[256], dueling=True, layer_n
                     if layer_norm:
                         action_out = layers.layer_norm(action_out, center=True, scale=True)
                     action_out = tf.nn.relu(action_out)
-                if obs_augmentation is not None: action_out = tf.concat([action_out] + contract_placeholders, axis=-1)
+                if obs_augmentation is not None: action_out = tf.concat([action_out] + constraint_placeholders, axis=-1)
                 action_scores = layers.fully_connected(action_out, num_outputs=num_actions, activation_fn=None)
 
             if dueling:
@@ -134,7 +134,7 @@ def build_q_func(network, obs_augmentation, hiddens=[256], dueling=True, layer_n
                         if layer_norm:
                             state_out = layers.layer_norm(state_out, center=True, scale=True)
                         state_out = tf.nn.relu(state_out)
-                    if obs_augmentation is not None: state_out = tf.concat([state_out] + contract_placeholders, axis=-1)
+                    if obs_augmentation is not None: state_out = tf.concat([state_out] + constraint_placeholders, axis=-1)
                     state_score = layers.fully_connected(state_out, num_outputs=1, activation_fn=None)
                 action_scores_mean = tf.reduce_mean(action_scores, 1)
                 action_scores_centered = action_scores - tf.expand_dims(action_scores_mean, 1)

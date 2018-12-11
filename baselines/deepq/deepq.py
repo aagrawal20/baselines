@@ -15,7 +15,7 @@ from baselines.common import set_global_seeds
 from baselines import deepq
 from baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
 from baselines.deepq.utils import ObservationInput
-from baselines.contract.deepq.utils import ContractStateAugmentedInput
+from baselines.constraint.deepq.utils import ConstraintStateAugmentedInput
 
 from baselines.common.tf_util import get_session
 from baselines.deepq.models import build_q_func
@@ -116,8 +116,7 @@ def learn(env,
           param_noise=False,
           callback=None,
           load_path=None,
-          **network_kwargs
-            ):
+          **network_kwargs):
     """Train a deepq model.
 
     Parameters
@@ -190,7 +189,7 @@ def learn(env,
     sess = get_session()
     set_global_seeds(seed)
 
-    contracts, aug_type = find_contracts(env)
+    constraints, aug_type = find_constraints(env)
     q_func = build_q_func(network, aug_type, **network_kwargs)
 
     # capture the shape outside the closure so that the env object is not serialized
@@ -198,8 +197,8 @@ def learn(env,
 
     observation_space = env.observation_space
     def make_obs_ph(name):
-        if aug_type == 'contract_state':
-            return ContractStateAugmentedInput(observation_space, contracts, name=name)
+        if aug_type == 'constraint_state':
+            return ConstraintStateAugmentedInput(observation_space, constraints, name=name)
         return ObservationInput(observation_space, name=name)
 
     act, train, update_target, debug = deepq.build_train(
@@ -335,10 +334,10 @@ def learn(env,
 
     return act
 
-def find_contracts(env):
-    if hasattr(env, 'contracts'):
+def find_constraints(env):
+    if hasattr(env, 'constraints'):
         if env.augmentation_type != None:
-            return env.contracts, env.augmentation_type
+            return env.constraints, env.augmentation_type
     elif hasattr(env, 'env'):
-        return find_contracts(env.env)
+        return find_constraints(env.env)
     return None, None

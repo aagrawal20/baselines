@@ -77,7 +77,7 @@ def process_dir(dir):
         is_priority = str(
             task_args['prioritized_replay']
         ) if 'prioritized_replay' in task_args.keys() else 'True'
-        contracts = task_args['contracts'] if 'contracts' in task_args.keys(
+        constraints = task_args['constraints'] if 'constraints' in task_args.keys(
         ) else []
         violation_vals = task_args['rewards'] if 'rewards' in task_args.keys(
         ) else 0.0
@@ -94,9 +94,9 @@ def process_dir(dir):
                 task_name + ' rewards',
                 os.path.join(dir, task_name + '_step_reward'))
 
-    for contract, viol_val in zip(contracts, violation_vals):
-        violations = np.load(dir + '/' + contract + '_viols.npy')
-        reward_mods = np.load(dir + '/' + contract + '_rew_mod.npy')
+    for constraint, viol_val in zip(constraints, violation_vals):
+        violations = np.load(dir + '/' + constraint + '_viols.npy')
+        reward_mods = np.load(dir + '/' + constraint + '_rew_mod.npy')
         steps = min((len(rewards), len(reward_mods)))
         if len(rewards) != len(reward_mods):
             rewards = rewards[:steps]
@@ -121,7 +121,7 @@ def process_dir(dir):
             'episode', 'raw_reward', task_name + ' episode raw rewards',
             os.path.join(dir, task_name + '_episode_step_rawreward'))
         print(task_name)
-        print('{} with {} val @ {} steps'.format(contract, viol_val, steps))
+        print('{} with {} val @ {} steps'.format(constraint, viol_val, steps))
 
         rr, viols = best_reward_violations(mean_raw_rewards, mean_ep_violations)
         best_mean_vals = {'raw_reward': rr, 'violations': viols}
@@ -129,7 +129,7 @@ def process_dir(dir):
         with open(os.path.join(dir, 'result.json'), 'w') as result_file:
             json.dump(best_mean_vals, result_file)
     
-    if not contracts:
+    if not constraints:
         print(task_name)
         print("reward: {}".format(
             best_reward_violations(mean_ep_rewards,

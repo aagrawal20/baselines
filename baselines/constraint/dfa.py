@@ -7,7 +7,7 @@ import tempfile
 import pygraphviz
 from networkx.drawing import nx_agraph
 
-JAR_DIR = './baselines/contract'
+JAR_DIR = './baselines/constraint'
 
 
 def regex2dfa(reg_ex, letter='q'):
