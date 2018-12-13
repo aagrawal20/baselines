@@ -1,8 +1,6 @@
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
 
-from baselines.constraint.common.models import augment_network_with_constraint_state
-
 def _mlp(hiddens, input_, num_actions, scope, reuse=False, layer_norm=False):
     with tf.variable_scope(scope, reuse=reuse):
         out = input_
@@ -115,6 +113,9 @@ def build_q_func(network, obs_augmentation, hiddens=[256], dueling=True, layer_n
                 latent = latent[0]
 
             latent = layers.flatten(latent)
+            if obs_augmentation is not None: 
+                constraint_latent = layers.fully_connected(tf.concat(constraint_placeholders, axis=-1), num_outputs=num_actions, activation_fn=tf.nn.relu)
+                latent = tf.concat([latent, constraint_latent], axis=-1)
 
             with tf.variable_scope("action_value"):
                 action_out = latent
@@ -123,7 +124,6 @@ def build_q_func(network, obs_augmentation, hiddens=[256], dueling=True, layer_n
                     if layer_norm:
                         action_out = layers.layer_norm(action_out, center=True, scale=True)
                     action_out = tf.nn.relu(action_out)
-                if obs_augmentation is not None: action_out = tf.concat([action_out] + constraint_placeholders, axis=-1)
                 action_scores = layers.fully_connected(action_out, num_outputs=num_actions, activation_fn=None)
 
             if dueling:
