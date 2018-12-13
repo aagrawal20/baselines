@@ -134,7 +134,6 @@ def build_q_func(network, obs_augmentation, hiddens=[256], dueling=True, layer_n
                         if layer_norm:
                             state_out = layers.layer_norm(state_out, center=True, scale=True)
                         state_out = tf.nn.relu(state_out)
-                    if obs_augmentation is not None: state_out = tf.concat([state_out] + constraint_placeholders, axis=-1)
                     state_score = layers.fully_connected(state_out, num_outputs=1, activation_fn=None)
                 action_scores_mean = tf.reduce_mean(action_scores, 1)
                 action_scores_centered = action_scores - tf.expand_dims(action_scores_mean, 1)
