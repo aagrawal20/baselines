@@ -26,7 +26,8 @@ class StepMonitor(Wrapper):
     def __init__(self, env, filename, log_size=10000):
         Wrapper.__init__(self, env=env)
         self.filename = filename
-        self.action_log = LogBuffer(log_size, (), dtype=np.int32)
+        self.log_size = log_size
+        self.action_log = None
         self.reward_log = LogBuffer(log_size, (), dtype=np.float32)
         self.done_log = LogBuffer(log_size, (), dtype=np.int32)
 
@@ -39,6 +40,8 @@ class StepMonitor(Wrapper):
         return self.env.reset(**kwargs)
 
     def update(self, ob, act, rew, done, info):
+        if self.action_log is None:
+            self.action_log = LogBuffer(self.log_size, act.shape, dtype=np.int32)
         act_ns = self.action_log.log(act)
         rew_ns = self.reward_log.log(rew)
         don_ns = self.done_log.log(done)

@@ -96,34 +96,35 @@ def build_env(args):
     seed = args.seed
 
     env_type, env_id = get_env_type(args.env)
+    env_thunk = lambda x: x
+    if args.constraints is not None:
+        assert len(args.constraints) == len(args.rewards)
+        constraints = [constraint.CONSTRAINT_DICT[s](r) for (s, r) in zip(args.constraints, args.rewards)]
+        env_thunk = lambda env: constraint.StepMonitor(constraint.ConstraintEnv(env, constraints, augmentation_type=args.augmentation, log_dir=logger.get_dir()), logger.get_dir())
 
     if env_type in {'atari', 'retro'}:
         if alg == 'deepq':
             env = make_env(env_id, env_type, seed=seed, wrapper_kwargs={'frame_stack': True})
+            env = env_thunk(env)
         elif alg == 'trpo_mpi':
             env = make_env(env_id, env_type, seed=seed)
+            env = env_thunk(env)
         else:
             frame_stack_size = 4
-            env = make_vec_env(env_id, env_type, nenv, seed, gamestate=args.gamestate, reward_scale=args.reward_scale)
+            env = make_vec_env(env_id, env_type, nenv, seed, gamestate=args.gamestate, reward_scale=args.reward_scale, constraint_env_thunk=env_thunk)
             env = VecFrameStack(env, frame_stack_size)
 
     else:
-       config = tf.ConfigProto(allow_soft_placement=True,
-                               intra_op_parallelism_threads=1,
-                               inter_op_parallelism_threads=1)
-       config.gpu_options.allow_growth = True
-       get_session(config=config)
+        config = tf.ConfigProto(allow_soft_placement=True,
+                                intra_op_parallelism_threads=1,
+                                inter_op_parallelism_threads=1)
+        config.gpu_options.allow_growth = True
+        get_session(config=config)
 
-       env = make_vec_env(env_id, env_type, args.num_env or 1, seed, reward_scale=args.reward_scale)
+        env = make_vec_env(env_id, env_type, args.num_env or 1, seed, reward_scale=args.reward_scale, constraint_env_thunk=env_thunk)
 
-       if env_type == 'mujoco':
-           env = VecNormalize(env)
-
-    if args.constraints is not None:
-        assert len(args.constraints) == len(args.rewards)
-        constraints = [constraint.CONSTRAINT_DICT[s](r) for (s, r) in zip(args.constraints, args.rewards)]
-        env = constraint.ConstraintEnv(env, constraints, augmentation_type=args.augmentation, log_dir=logger.get_dir())
-        env = constraint.StepMonitor(env, logger.get_dir())
+        if env_type == 'mujoco':
+            env = VecNormalize(env)
 
     return env
 
