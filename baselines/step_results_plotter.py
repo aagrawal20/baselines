@@ -1,9 +1,11 @@
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Can change to 'Agg' for non-interactive mode
-import matplotlib.pyplot as plt
 import json
 import os
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+
+matplotlib.use('Agg')  # Can change to 'Agg' for non-interactive mode
 
 EPISODES_WINDOW = 100
 COLORS = [
@@ -12,6 +14,7 @@ COLORS = [
     'lavender', 'turquoise', 'darkgreen', 'tan', 'salmon', 'gold',
     'lightpurple', 'darkred', 'darkblue'
 ]
+
 
 def accumulate_episodes(done, a):
     episode_stops = np.nonzero(done)[0]
@@ -59,81 +62,84 @@ def plot_curves(xy_list, xaxis, yaxis, title, save_path):
     return y_mean
 
 
-def best_reward_violations(rewards, violations):
-    idx = np.argmax(rewards)
-    return rewards[idx], violations[idx]
+def plot_and_window(sequence, sequence_name, done, task_name, directory):
+    plot_curves([(np.arange(len(sequence)), sequence)], 'timestep',
+                sequence_name, task_name + ' ' + sequence_name,
+                os.path.join(directory, task_name + '_step_{}'.format(sequence_name)))
+    episode_sequence = accumulate_episodes(done, sequence)
+    windowed_episode_sequence = plot_curves(
+        [(np.arange(len(episode_sequence)), episode_sequence)], 'episode',
+        sequence_name, task_name + '{} per episode'.format(sequence_name),
+        os.path.join(directory,
+                     task_name + '_episode_step_{}'.format(sequence_name)))
+    return windowed_episode_sequence
+
+
+def select_best_index(key, dictionary):
+    idx = np.argmax(dictionary[key])
+    return {k: v[idx] for k, v in dictionary.items()}
+
+
+def truncate_match_sequences(sequences):
+    min_len = min(map(len, sequences))
+    return [s[:min_len] for s in sequences]
 
 
 def process_dir(dir):
     if os.path.exists(os.path.join(dir, 'result.json')): return
-        
-    done = np.load(dir + '/done.npy')
-    rewards = np.load(dir + '/reward.npy')
 
+    # load info about constraints
     with open(os.path.join(dir, 'args.json')) as args_file:
         task_args = json.load(args_file)
-        is_dueling = str(
-            task_args['dueling']) if 'dueling' in task_args.keys() else 'True'
-        is_priority = str(
-            task_args['prioritized_replay']
-        ) if 'prioritized_replay' in task_args.keys() else 'True'
-        constraints = task_args['constraints'] if 'constraints' in task_args.keys(
-        ) else []
-        violation_vals = task_args['rewards'] if 'rewards' in task_args.keys(
-        ) else 0.0
+        constraints = task_args[
+            'constraints'] if 'constraints' in task_args.keys() else []
+        violation_values = task_args[
+            'rewards'] if 'rewards' in task_args.keys() else []
         env = task_args['env']
         task_name = env
 
-    episode_rewards = accumulate_episodes(done, rewards)
-    mean_ep_rewards = plot_curves(
-        [(np.arange(len(episode_rewards)), episode_rewards)], 'episode',
-        'reward', task_name + ' episode rewards',
-        os.path.join(dir, task_name + '_episode_step_reward'))
+    # load and calculate on rewards
+    done = np.load(dir + '/done.npy')
+    rewards = np.load(dir + '/reward.npy')
+    mean_episode_rewards = plot_and_window(rewards, 'reward', done, task_name, dir)
 
-    plot_curves([(np.arange(len(rewards)), rewards)], 'timestep', 'reward',
-                task_name + ' rewards',
-                os.path.join(dir, task_name + '_step_reward'))
+    # calculate info on constraint violations
+    reward_mods_dict = {}
+    mean_episode_violations_dict = {}
 
-    for constraint, viol_val in zip(constraints, violation_vals):
+    for constraint in constraints:
         violations = np.load(dir + '/' + constraint + '_viols.npy')
-        reward_mods = np.load(dir + '/' + constraint + '_rew_mod.npy')
-        steps = min((len(rewards), len(reward_mods)))
-        if len(rewards) != len(reward_mods):
-            rewards = rewards[:steps]
-            reward_mods = reward_mods[:steps]
-        
-        raw_rewards = rewards - reward_mods
-        plot_curves([(np.arange(len(violations)), violations)], 'timestep',
-                    'violation', task_name + ' violations',
-                    os.path.join(dir, task_name + '_step_violation'))
-        plot_curves([(np.arange(len(raw_rewards)), raw_rewards)], 'timestep',
-                    'raw_reward', task_name + ' raw rewards',
-                    os.path.join(dir, task_name + '_step_rawreward'))
+        reward_mods_dict[constraint] = np.load(dir + '/' + constraint +
+                                          '_rew_mod.npy')
+        mean_episode_violations_dict[constraint] = plot_and_window(
+            violations, constraint, done, task_name, dir)
 
-        episode_violations = accumulate_episodes(done, violations)
-        episode_raw_rewards = accumulate_episodes(done, raw_rewards)
-        mean_ep_violations = plot_curves(
-            [(np.arange(len(episode_violations)), episode_violations)],
-            'episode', 'violation', task_name + ' episode violations',
-            os.path.join(dir, task_name + '_episode_step_violation'))
-        mean_raw_rewards = plot_curves(
-            [(np.arange(len(episode_raw_rewards)), episode_raw_rewards)],
-            'episode', 'raw_reward', task_name + ' episode raw rewards',
-            os.path.join(dir, task_name + '_episode_step_rawreward'))
-        print(task_name)
-        print('{} with {} val @ {} steps'.format(constraint, viol_val, steps))
+    # calculate raw reward
+    # truncate all reward squences to be the same length for binary ops
+    truncated = truncate_match_sequences([rewards] + list(reward_mods_dict.values()))
+    rewards, reward_mods = truncated[0], truncated[1:]
 
-        rr, viols = best_reward_violations(mean_raw_rewards, mean_ep_violations)
-        best_mean_vals = {'raw_reward': rr, 'violations': viols}
-        print(best_mean_vals)
-        with open(os.path.join(dir, 'result.json'), 'w') as result_file:
-            json.dump(best_mean_vals, result_file)
-    
+    total_reward_mod = sum(reward_mods)
+    raw_rewards = rewards - total_reward_mod
+    mean_raw_rewards = plot_and_window(raw_rewards, 'raw_reward', done,
+                                       task_name, dir)
+
+    # find best reward/violations set
+    best_mean_episode_violations_dict = select_best_index(
+        'reward', {**{'reward': mean_raw_rewards}, **mean_episode_violations_dict})
+    best_mean_raw_reward = best_mean_episode_violations_dict.pop('reward')
+    print('{} with {} episode val and constraint {} with shaping val {}'.format(task_name, best_mean_raw_reward, constraint, violation_values[-1]))
+
+    best_mean_vals = {
+        'raw_reward': best_mean_raw_reward,
+        'violations': best_mean_episode_violations_dict
+    }
+    with open(os.path.join(dir, 'result.json'), 'w') as result_file:
+        json.dump(best_mean_vals, result_file)
+
     if not constraints:
         print(task_name)
-        print("reward: {}".format(
-            best_reward_violations(mean_ep_rewards,
-                                   np.zeros_like(mean_ep_rewards))))
+        print(select_best_index('reward', {'reward', mean_episode_rewards}))
 
 
 def main():
