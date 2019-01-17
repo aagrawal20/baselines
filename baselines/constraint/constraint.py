@@ -35,6 +35,13 @@ def reacher_action_threshold(act):
 def reacher_discretize_act(act, coeff=5):
     return np.abs(int(coeff*act[0]))
 
+def idx_sign(act, idx):
+    s = np.sign(act[idx])
+    if s > 0:
+        return '2'
+    else:
+        return '3'
+
 class Constraint(DFA):
     def __init__(self,
                  name,
@@ -59,7 +66,7 @@ class Constraint(DFA):
         if self.a_active:
             is_viol = is_viol | super().step(self.a_tl(action))
         rew_mod = self.violation_reward if is_viol else 0.
-        # if is_viol: print('violated')
+        #if is_viol: print(self.name)
         return is_viol, rew_mod
 
     def reset(self):
@@ -124,6 +131,7 @@ REACHER_REVISIT = '|'.join([
     '({0}{1}{0})'.format(a, b) for a, b in itertools.permutations(
         map(lambda x: hex(x)[2:], range(10)), 2)
 ])
+HALF_CHEETAH_DITHERING_k = lambda k: '(23){k}|(32){k}'.format(k=k)
 
 def compute_reacher_actuation_constraint(threshold, limit=3):
     candidates_list = []
@@ -148,4 +156,11 @@ CONSTRAINT_DICT = {'2d_dithering': lambda r: Constraint('2d_dithering', DITHERIN
                  'enduro_dithering': lambda r: Constraint('enduro_dithering', ENDURO_DITHERING, r),
                  'reacher_revisit': lambda r: Constraint('reacher_revisit', REACHER_REVISIT, r, s_tl=reacher_state_quadrants, a_tl=reacher_action_threshold, a_active=False),
                  'reacher_revisit_counting': lambda r: CountingPotentialConstraint('reacher_revisit_counting', REACHER_REVISIT, r, 0.99, s_tl=reacher_state_quadrants, a_tl=reacher_action_threshold, a_active=False),
-                 'reacher_actuation_counting': lambda r: CountingPotentialConstraint('reacher_actuation_counting', REACHER_ACTUATION, r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda x: reacher_discretize_act(x, 5), s_active=False)}
+                 'reacher_actuation_counting': lambda r: CountingPotentialConstraint('reacher_actuation_counting', REACHER_ACTUATION, r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda x: reacher_discretize_act(x, 5), s_active=False),
+                 'half_cheetah_0': lambda r: CountingPotentialConstraint('half_cheetah_0', HALF_CHEETAH_DITHERING_k(3), r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda a: idx_sign(a, 0), s_active=False),
+                 'half_cheetah_1': lambda r: CountingPotentialConstraint('half_cheetah_1', HALF_CHEETAH_DITHERING_k(3), r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda a: idx_sign(a, 1), s_active=False),
+                 'half_cheetah_2': lambda r: CountingPotentialConstraint('half_cheetah_2', HALF_CHEETAH_DITHERING_k(3), r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda a: idx_sign(a, 2), s_active=False),
+                 'half_cheetah_3': lambda r: CountingPotentialConstraint('half_cheetah_3', HALF_CHEETAH_DITHERING_k(3), r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda a: idx_sign(a, 3), s_active=False),
+                 'half_cheetah_4': lambda r: CountingPotentialConstraint('half_cheetah_4', HALF_CHEETAH_DITHERING_k(3), r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda a: idx_sign(a, 4), s_active=False),
+                 'half_cheetah_5': lambda r: CountingPotentialConstraint('half_cheetah_5', HALF_CHEETAH_DITHERING_k(3), r, 0.99, s_tl=reacher_state_quadrants, a_tl=lambda a: idx_sign(a, 5), s_active=False),
+                 }
