@@ -6,8 +6,8 @@ import os
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('env', type=str, choices=['reacher_actuation','cheetah_dithering','reacher_revisit', 'cheetah_actuation'])
 parser.add_argument('reward_mod', type=int)
-parser.add_argument('env', type=str, choices=['reacher_actuation','cheetah_dithering'])
 parser.add_argument('reward_mod_str', type=str)
 parser.add_argument('base_dir_num', type=int)
 args = parser.parse_args()
@@ -33,8 +33,18 @@ while True:
     elif args.env == 'cheetah_dithering':
         my_env["OPENAI_LOGDIR"] = "cheetah_dithering_{}_{}".format(args.reward_mod_str, i)
         subprocess.call(
-            'python -m baselines.run --env HalfCheetah-v2 --constraints half_cheetah_0 half_cheetah_1 half_cheetah_2 half_cheetah_3 half_cheetah_4 half_cheetah_5 --rewards {r} {r} {r} {r} {r} {r}'
+            'python -m baselines.run --env HalfCheetah-v2 --constraints half_cheetah_dithering_0 half_cheetah_dithering_1 half_cheetah_dithering_2 half_cheetah_dithering_3 half_cheetah_dithering_4 half_cheetah_dithering_5 --rewards {r} {r} {r} {r} {r} {r}'
             .format(r=args.reward_mod).split(), env=my_env)
+    elif args.env == 'cheetah_dithering':
+        my_env["OPENAI_LOGDIR"] = "cheetah_actuation_{}_{}".format(args.reward_mod_str, i)
+        subprocess.call(
+            'python -m baselines.run --env HalfCheetah-v2 --constraints half_cheetah_actuation_0 half_cheetah_actuation_1 half_cheetah_actuation_2 half_cheetah_actuation_3 half_cheetah_actuation_4 half_cheetah_actuation_5 --rewards {r} {r} {r} {r} {r} {r}'
+            .format(r=args.reward_mod).split(), env=my_env)
+    elif args.env == 'reacher_revisit':
+        my_env["OPENAI_LOGDIR"] = "reacher_revisit_{}_{}".format(args.reward_mod_str, i)
+        subprocess.call(
+            'python -m baselines.run --constraints reacher_revisit_counting --rewards {}'
+            .format(args.reward_mod).split(), env=my_env)
 
     print("All done!")
     i += 1
