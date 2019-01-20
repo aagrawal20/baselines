@@ -5,8 +5,15 @@ from gym.core import Wrapper
 
 
 class LogBuffer(object):
-    def __init__(self, buffer_size, buffer_shape, dtype=np.uint8):
-        self.buffer = np.zeros((buffer_size, ) + buffer_shape, dtype)
+    """Automatically growing (by doubling) numpy array for logging"""
+
+    def __init__(self, initial_buffer_size, object_shape, dtype=np.uint8):
+        """ 
+        Args:
+            initial_buffer_size: size of buffer log initially
+            object_shape: shape of objects to be stored in log
+        """
+        self.buffer = np.zeros((initial_buffer_size, ) + object_shape, dtype)
         self.next_step = 0
 
     def log(self, item):
@@ -19,17 +26,18 @@ class LogBuffer(object):
         self.next_step += 1
         return self.next_step
 
-    def save(self, name):
-        np.save(name, self.buffer[:self.next_step - 1])
+    def save(self, filename):
+        np.save(filename, self.buffer[:self.next_step - 1])
+
 
 class StepMonitor(Wrapper):
-    def __init__(self, env, filename, log_size=10000):
+    def __init__(self, env, filename, initial_log_size=10000):
         Wrapper.__init__(self, env=env)
         self.filename = filename
-        self.log_size = log_size
+        self.log_size = initial_log_size
         self.action_log = None
-        self.reward_log = LogBuffer(log_size, (), dtype=np.float32)
-        self.done_log = LogBuffer(log_size, (), dtype=np.int32)
+        self.reward_log = LogBuffer(initial_log_size, (), dtype=np.float32)
+        self.done_log = LogBuffer(initial_log_size, (), dtype=np.int32)
 
     def step(self, action):
         ob, rew, done, info = self.env.step(action)
@@ -41,7 +49,8 @@ class StepMonitor(Wrapper):
 
     def update(self, ob, act, rew, done, info):
         if self.action_log is None:
-            self.action_log = LogBuffer(self.log_size, act.shape, dtype=np.int32)
+            self.action_log = LogBuffer(
+                self.log_size, act.shape, dtype=np.int32)
         act_ns = self.action_log.log(act)
         rew_ns = self.reward_log.log(rew)
         don_ns = self.done_log.log(done)

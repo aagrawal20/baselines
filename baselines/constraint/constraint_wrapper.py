@@ -6,23 +6,21 @@ import baselines.constraint
 import gym
 from baselines.constraint.bench.step_monitor import LogBuffer
 
+
 class ConstraintEnv(gym.Wrapper):
-    def __init__(self,
-                 env,
-                 constraints,
-                 augmentation_type=None,
-                 log_dir=None):
+    def __init__(self, env, constraints, augmentation_type=None, log_dir=None):
         gym.Wrapper.__init__(self, env)
         self.constraints = constraints
-        print(self.constraints)
         self.augmentation_type = augmentation_type
         self.prev_obs = self.env.reset()
         if log_dir is not None:
             self.log_dir = log_dir
-            self.viol_log_dict = dict([(c, LogBuffer(1024, (), dtype=np.bool))
-                             for c in constraints])
-            self.rew_mod_log_dict = dict([(c, LogBuffer(1024, (), dtype=np.float32))
-                             for c in constraints])
+            self.viol_log_dict = dict(
+                [(c, LogBuffer(1024, (), dtype=np.bool)) for c in constraints])
+            self.rew_mod_log_dict = dict([(c,
+                                           LogBuffer(
+                                               1024, (), dtype=np.float32))
+                                          for c in constraints])
         else:
             self.logs = None
 

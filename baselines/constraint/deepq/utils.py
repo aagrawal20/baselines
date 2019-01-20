@@ -4,6 +4,7 @@ from baselines.deepq.utils import ObservationInput
 import tensorflow as tf
 import numpy as np
 
+
 class ConstraintStateAugmentedInput(ObservationInput):
     def __init__(self, observation_space, constraints, name=None):
         super().__init__(observation_space)
@@ -32,6 +33,6 @@ class ConstraintStateAugmentedInput(ObservationInput):
             c_one_hot[0, constraints[i]] = 1
             feed_dict[ph] = c_one_hot
         return feed_dict
-    
+
     def batch_size(self):
         return tf.shape(self.get()[0])[0]
