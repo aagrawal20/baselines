@@ -9,7 +9,7 @@ matplotlib.use('Agg')  # Can change to 'Agg' for non-interactive mode
 
 EPISODES_WINDOW = 100
 COLORS = [
-    'blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'purple',
+    'blue', 'red', 'green', 'magenta', 'black', 'purple',
     'pink', 'brown', 'orange', 'teal', 'coral', 'lightblue', 'lime',
     'lavender', 'turquoise', 'darkgreen', 'tan', 'salmon', 'gold',
     'lightpurple', 'darkred', 'darkblue'
@@ -39,14 +39,16 @@ def window_func(x, y, window, func):
     return x[window - 1:], yw_func
 
 
-def plot_curves(xy_list, xaxis, yaxis, title, save_path, plot_mean=True, variance=None):
+def plot_curves(xy_list, xaxis, yaxis, title, save_path, plot_mean=True, variance=[]):
     fig = plt.figure(figsize=(8, 2))
     maxx = max(xy[0][-1] for xy in xy_list)
     minx = 0
     for (i, (x, y)) in enumerate(xy_list):
         color = COLORS[i]
-        if variance is not None: plt.fill_between(x, y-variance, y+variance, color=color, alpha=0.5)
-        plt.scatter(x, y, s=2)
+        if len(variance) > i: plt.fill_between(x, y-variance[i], y+variance[i], color=color, alpha=0.35)
+    for (i, (x, y)) in enumerate(xy_list):
+        color = COLORS[i]
+        plt.scatter(x, y, s=2, color=color)
         x, y_mean = window_func(
             x, y, EPISODES_WINDOW,
             np.mean)  #So returns average of last EPISODE_WINDOW episodes
@@ -152,11 +154,39 @@ def main():
         'dirs', help='List of log directories', nargs='*', default=['./log'])
     parser.add_argument('--agg', action='store_true')
     parser.add_argument('--task_name', type=str)
+    parser.add_argument('--cross_cut_reward', nargs="*", default=[])
+    parser.add_argument('--cross_cut_constraint', nargs="*", default=[])
     args = parser.parse_args()
     args.dirs = [os.path.abspath(dir) for dir in args.dirs]
     best_mean_vals_dicts_list = []
     raw_rewards_list = []
     mean_episode_violations_dict_list = []
+    if args.cross_cut_reward:
+        vals = []
+        std_devs = []
+        for tn in args.cross_cut_plot:
+            vals.append(np.load('{}_mean_raw_rewards_per_episode.npy'.format(tn)))
+            std_devs.append(np.load('{}_stddev_raw_rewards_per_episode.npy'.format(tn)))
+        vals = truncate_match_sequences(vals)
+        std_devs = truncate_match_sequences(std_devs)
+        plot_curves([(np.arange(len(v)), v) for v in vals], 'episode',
+                'aggregate raw rewards', args.task_name + ' ' + 'aggregate raw rewards',
+                args.task_name + '_aggregate_raw_rewards', plot_mean=False, variance=std_devs)
+        exit()
+    if args.cross_cut_constraint:
+        vals = []
+        std_devs = []
+        key = args.cross_cut_constraint[0]
+        for tn in args.cross_cut_constraint[1:]:
+            vals.append(np.load('{}_constraint_{}_mean_violations_per_episode.npy'.format(tn, key)))
+            std_devs.append(np.load('{}_constraint_{}_stddev_violations_per_episode.npy'.format(tn, key)))
+        vals = truncate_match_sequences(vals)
+        std_devs = truncate_match_sequences(std_devs)
+        plot_curves([(np.arange(len(v)), v) for v in vals], 'episode',
+                'constraint {}'.format(key), args.task_name + ' constraint {}'.format(key),
+                args.task_name + '_constraint_{}'.format(key), plot_mean=False, variance=std_devs)
+        exit()
+    
     for directory in args.dirs:
         best_mean_vals_dict, raw_rewards, mean_episode_violations_dict = process_dir(directory)
         best_mean_vals_dicts_list.append(best_mean_vals_dict)
@@ -170,7 +200,9 @@ def main():
         std_raw_rewards = np.std(raw_rewards_list, axis=0)
         plot_curves([(np.arange(len(agg_raw_rewards)), agg_raw_rewards)], 'episode',
                 'aggregate raw rewards', args.task_name + ' ' + 'aggregate raw rewards',
-                os.path.join(args.task_name, args.task_name + '_aggregate_raw_rewards'), plot_mean=False, variance=std_raw_rewards)
+                os.path.join(args.task_name, args.task_name + '_aggregate_raw_rewards'), plot_mean=False, variance=[std_raw_rewards])
+        np.save('{}_mean_raw_rewards_per_episode'.format(args.task_name), agg_raw_rewards)
+        np.save('{}_stddev_raw_rewards_per_episode'.format(args.task_name), std_raw_rewards)
 
         for key in mean_episode_violations_dict_list[0].keys():
             relevant_vals = [d[key] for d in mean_episode_violations_dict_list]
@@ -179,7 +211,10 @@ def main():
             std_relevant_vals = np.std(relevant_vals, axis=0)
             plot_curves([(np.arange(len(agg_relevant_vals)), agg_relevant_vals)], 'episode',
                     'constraint {}'.format(key), args.task_name + ' constraint {}'.format(key),
-                    os.path.join(args.task_name, args.task_name + '_constraint_{}'.format(key)), plot_mean=False, variance=std_relevant_vals)
+                    os.path.join(args.task_name, args.task_name + '_constraint_{}'.format(key)), plot_mean=False, variance=[std_relevant_vals])
+            np.save('{}_constraint_{}_mean_violations_per_episode'.format(args.task_name, key), agg_relevant_vals)
+            np.save('{}_constraint_{}_stddev_violations_per_episode'.format(args.task_name, key), std_relevant_vals)
+
 
 if __name__ == '__main__':
     main()
