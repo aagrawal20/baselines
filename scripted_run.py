@@ -6,7 +6,7 @@ import os
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('env', type=str, choices=['reacher_actuation','cheetah_dithering','reacher_revisit', 'cheetah_actuation'])
+parser.add_argument('env', type=str, choices=['reacher_actuation','cheetah_dithering','reacher_revisit', 'cheetah_actuation', 'breakout_dithering'])
 parser.add_argument('reward_mod', type=int)
 parser.add_argument('reward_mod_str', type=str)
 parser.add_argument('base_dir_num', type=int)
@@ -45,6 +45,12 @@ while True:
         subprocess.call(
             'python -m baselines.run --constraints reacher_revisit_counting --rewards {}'
             .format(args.reward_mod).split(), env=my_env)
+    elif args.env == 'breakout_dithering':
+        my_env["OPENAI_LOGDIR"] = "breakout_dithering_{}_{}".format(args.reward_mod_str, i)
+        subprocess.call(
+            'python -m baselines.run --num_timesteps 1e7 --alg deepq --constraints 1d_dithering --rewards {}'
+            .format(args.reward_mod).split(), env=my_env)
+
 
     print("All done!")
     i += 1
