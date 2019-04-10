@@ -21,7 +21,7 @@ class TfInput(object):
         """
         raise NotImplementedError
 
-    def make_feed_dict(data):
+    def make_feed_dict(self, data):
         """Given data input it to the placeholder(s)."""
         raise NotImplementedError
 
