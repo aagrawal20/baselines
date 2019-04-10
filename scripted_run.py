@@ -48,7 +48,7 @@ while True:
     elif args.env == 'breakout_dithering':
         my_env["OPENAI_LOGDIR"] = "breakout_dithering_{}_{}".format(args.reward_mod_str, i)
         subprocess.call(
-            'python -m baselines.run --num_timesteps 1e7 --alg deepq --constraints 1d_dithering --rewards {}'
+            'python -m baselines.run --env BreakoutNoFrameskip-v4 --num_timesteps 1e7 --alg deepq --constraints 1d_dithering --rewards {}'
             .format(args.reward_mod).split(), env=my_env)
 
 
